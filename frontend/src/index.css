@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bgDark: #000000;
+  --color-bgCard: #0b0b0b;
+  --color-bgCardHover: #141414;
+  --color-borderGray: #222222;
+  --color-textWhite: #ffffff;
+  --color-textGray: #999999;
+  --color-accentRed: #E50914;
+  --color-accentRedHover: #b20710;
+  
+  --font-sans: "Outfit", "Inter", sans-serif;
+  
+  --shadow-premium: 0 10px 40px -10px rgba(0,0,0,0.9);
+  --shadow-glow: 0 0 20px rgba(229, 9, 20, 0.2);
+  --shadow-glowActive: 0 0 25px rgba(229, 9, 20, 0.55);
+}
+
+/* Barra de desplazamiento personalizada (Premium Dark) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #222222;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #E50914;
+}
+
+/* Estilos base */
+body {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  background-color: #000000;
+  color: #ffffff;
+  overflow-x: hidden;
+}
+
+/* Navegación difuminada (Glassmorphism) */
+.glass-navbar {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Tarjetas difuminadas (Glassmorphism) */
+.glass-card {
+  background: rgba(11, 11, 11, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Efecto de Brillo Rojo al pasar el cursor */
+.glow-on-hover {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glow-on-hover:hover {
+  box-shadow: 0 0 30px rgba(229, 9, 20, 0.15);
+  border-color: rgba(229, 9, 20, 0.4);
+}
+
+/* Título con contorno de texto */
+.text-stroke {
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.2);
+  color: transparent;
+  transition: all 0.3s ease;
+}
+
+.text-stroke:hover {
+  -webkit-text-stroke: 1px #E50914;
+}
+
+/* Animación sutil de pulso de luz de fondo */
+@keyframes bgPulse {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.25; }
+}
+
+.bg-glow-pulse {
+  animation: bgPulse 8s infinite ease-in-out;
+}
