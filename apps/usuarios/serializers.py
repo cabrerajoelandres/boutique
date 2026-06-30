@@ -20,6 +20,17 @@ class PerfilUsuarioSerializer(serializers.ModelSerializer):
             'postal_code',
             'country',
         ]
+        extra_kwargs = {
+            'phone': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'backup_phone': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'province': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'address_line1': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'address_line2': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'city': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'state': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'postal_code': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'country': {'required': False},
+        }
 
 class UsuarioSerializer(serializers.ModelSerializer):
     perfil = PerfilUsuarioSerializer()
@@ -27,7 +38,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
         fields = ['id', 'email', 'first_name', 'last_name', 'role', 'perfil']
-        read_only_fields = ['id', 'role']
+        read_only_fields = ['id', 'email', 'role']
 
     def update(self, instance, validated_data):
         perfil_data = validated_data.pop('perfil', None)
@@ -38,8 +49,8 @@ class UsuarioSerializer(serializers.ModelSerializer):
         instance.save()
 
         # Actualizar campos del perfil
-        if perfil_data:
-            perfil = instance.perfil
+        if perfil_data is not None:
+            perfil, _ = PerfilUsuario.objects.get_or_create(user=instance)
             for attr, value in perfil_data.items():
                 setattr(perfil, attr, value)
             perfil.save()
