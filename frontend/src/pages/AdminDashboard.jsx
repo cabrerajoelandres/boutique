@@ -50,6 +50,7 @@ const AdminDashboard = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [categoryImagePreview, setCategoryImagePreview] = useState(null);
 
   // Gestión de Variantes en el Formulario
   const [hasVariants, setHasVariants] = useState(true);
@@ -59,7 +60,7 @@ const AdminDashboard = () => {
     { color: '', size: '', stock: 0, image: null }
   ]);
 
-  const { register: regProd, handleSubmit: handleProdSubmit, reset: resetProd, setValue } = useForm();
+  const { register: regProd, handleSubmit: handleProdSubmit, reset: resetProd, setValue: setProdValue } = useForm();
   const { register: regCat, handleSubmit: handleCatSubmit, reset: resetCat } = useForm();
 
   // Cargar estadísticas globales del Dashboard
@@ -142,6 +143,40 @@ const AdminDashboard = () => {
     } catch (err) { console.error(err); }
   };
 
+  const handleCategoryImageChange = (event) => {
+    const file = event.target.files?.[0];
+    if (categoryImagePreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(categoryImagePreview);
+    }
+    setCategoryImagePreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (categoryImagePreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(categoryImagePreview);
+      }
+    };
+  }, [categoryImagePreview]);
+
+  useEffect(() => {
+    if (!showCategoryModal) return;
+
+    if (editingCategory) {
+      resetCat({
+        name: editingCategory.name || '',
+        is_active: String(editingCategory.is_active),
+      });
+      setCategoryImagePreview(editingCategory.image || null);
+    } else {
+      resetCat({
+        name: '',
+        is_active: 'true',
+      });
+      setCategoryImagePreview(null);
+    }
+  }, [showCategoryModal, editingCategory, resetCat]);
+
   useEffect(() => {
     fetchDashboardStats();
     fetchCategories();
@@ -182,6 +217,7 @@ const AdminDashboard = () => {
       setShowCategoryModal(false);
       setEditingCategory(null);
       resetCat();
+      setCategoryImagePreview(null);
       fetchCategories();
       fetchDashboardStats();
     } catch (error) {
@@ -386,6 +422,31 @@ const AdminDashboard = () => {
           fetchDashboardStats();
         } catch (error) {
           Swal.fire('Error', 'No se pudo desactivar el producto', 'error');
+        }
+      }
+    });
+  };
+
+  const handleDeleteCategory = async (category) => {
+    Swal.fire({
+      title: '¿Eliminar Categoría?',
+      text: `Esta acción eliminará la categoría ${category.name}`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#E50914',
+      cancelButtonColor: '#222222',
+      confirmButtonText: 'Eliminar',
+      background: '#0b0b0b',
+      color: '#ffffff'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await axiosInstance.delete(`/categories/${category.id}/`);
+          Swal.fire('Éxito', 'Categoría eliminada', 'success');
+          fetchCategories();
+          fetchDashboardStats();
+        } catch (error) {
+          Swal.fire('Error', 'No se pudo eliminar la categoría', 'error');
         }
       }
     });
@@ -626,8 +687,7 @@ const AdminDashboard = () => {
                 <thead>
                   <tr className="border-b border-borderGray bg-black text-textGray uppercase tracking-wider">
                     <th className="p-4 font-semibold">SKU</th>
-                    <th className="p-4 font-semibold">Imagen</th>
-                    <th className="p-4 font-semibold">Nombre</th>
+                    <th className="p-4 font-semibold">Producto</th>
                     <th className="p-4 font-semibold">Categoría</th>
                     <th className="p-4 font-semibold">Precio</th>
                     <th className="p-4 font-semibold">Oferta</th>
@@ -640,19 +700,21 @@ const AdminDashboard = () => {
                     <tr key={p.id} className="hover:bg-bgCardHover">
                       <td className="p-4 font-mono">{p.sku}</td>
                       <td className="p-4">
-                        {p.image_principal ? (
-                          <img
-                            src={p.image_principal}
-                            alt={p.name}
-                            className="w-14 h-14 object-contain border border-borderGray bg-white p-0.5"
-                          />
-                        ) : (
-                          <div className="w-14 h-14 bg-neutral-900 border border-borderGray flex items-center justify-center text-textGray text-[9px] uppercase font-bold">
-                            Sin Foto
-                          </div>
-                        )}
+                        <div className="flex items-center space-x-3">
+                          {p.image_principal ? (
+                            <img
+                              src={p.image_principal}
+                              alt={p.name}
+                              className="w-14 h-14 object-contain border border-borderGray bg-white p-0.5"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 bg-neutral-900 border border-borderGray flex items-center justify-center text-textGray text-[9px] uppercase font-bold">
+                              Sin Foto
+                            </div>
+                          )}
+                          <span className="font-semibold text-white">{p.name}</span>
+                        </div>
                       </td>
-                      <td className="p-4 font-semibold text-white">{p.name}</td>
                       <td className="p-4 text-textGray">{p.category_detail?.name}</td>
                       <td className="p-4 font-bold">${parseFloat(p.price).toFixed(2)}</td>
                       <td className="p-4 text-accentRed font-bold">{p.offer_price ? `$${parseFloat(p.offer_price).toFixed(2)}` : '-'}</td>
@@ -674,21 +736,21 @@ const AdminDashboard = () => {
                             setEditingProduct(p);
                             setShowProductModal(true);
                             setDeletedVariantIds([]);
-                            setValue("name", p.name);
-                            setValue("description", p.description);
-                            setValue("category", p.category);
-                            setValue("price", p.price);
-                            setValue("offer_price", p.offer_price || "");
-                            setValue("brand", p.brand);
-                            setValue("gender", p.gender || "UNISEX");
-                            setValue("is_active", String(p.is_active));
-                            setValue("min_stock_alert", p.min_stock_alert);
+                            setProdValue("name", p.name);
+                            setProdValue("description", p.description);
+                            setProdValue("category", p.category);
+                            setProdValue("price", p.price);
+                            setProdValue("offer_price", p.offer_price || "");
+                            setProdValue("brand", p.brand);
+                            setProdValue("gender", p.gender || "UNISEX");
+                            setProdValue("is_active", String(p.is_active));
+                            setProdValue("min_stock_alert", p.min_stock_alert);
 
                             if (p.variantes && p.variantes.length > 0) {
                               if (p.variantes.length === 1 && p.variantes[0].color === 'Único') {
                                 setHasVariants(false);
                                 setSingleVariantId(p.variantes[0].id);
-                                setValue("stock_general", p.variantes[0].stock);
+                                setProdValue("stock_general", p.variantes[0].stock);
                               } else {
                                 setHasVariants(true);
                                 setSingleVariantId(null);
@@ -737,6 +799,7 @@ const AdminDashboard = () => {
                 onClick={() => {
                   setEditingCategory(null);
                   resetCat();
+                  setCategoryImagePreview(null);
                   setShowCategoryModal(true);
                 }}
                 className="bg-accentRed hover:bg-accentRedHover text-white px-4 py-2 text-xs uppercase tracking-widest font-bold flex items-center space-x-2 rounded-none"
@@ -777,13 +840,18 @@ const AdminDashboard = () => {
                           onClick={() => {
                             setEditingCategory(c);
                             setShowCategoryModal(true);
-                            setValue("name", c.name);
-                            setValue("is_active", String(c.is_active));
                           }}
                           className="text-textGray hover:text-white p-1"
                           title="Editar"
                         >
                           <FiEdit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(c)}
+                          className="text-textGray hover:text-accentRed p-1"
+                          title="Eliminar"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
                         </button>
                       </td>
                     </tr>
@@ -1464,6 +1532,7 @@ const AdminDashboard = () => {
                   setShowCategoryModal(false);
                   setEditingCategory(null);
                   resetCat();
+                  setCategoryImagePreview(null);
                 }} 
                 className="text-white hover:text-accentRed"
               >
@@ -1494,11 +1563,33 @@ const AdminDashboard = () => {
                 </select>
               </div>
 
+              {categoryImagePreview && (
+                <div className="space-y-2">
+                  <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">Imagen actual</label>
+                  <div className="bg-black border border-borderGray p-4 flex items-center gap-4">
+                    <div className="w-16 h-16 bg-white flex items-center justify-center overflow-hidden shrink-0">
+                      <img
+                        src={categoryImagePreview}
+                        alt="Imagen actual de la categoría"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="text-xs">
+                      <p className="text-white font-bold">Imagen actual</p>
+                      <p className="text-textGray">
+                        Para cambiarla, selecciona un nuevo archivo debajo.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">Imagen</label>
                 <input 
                   type="file"
-                  {...regCat("image")}
+                  accept="image/*"
+                  {...regCat("image", { onChange: handleCategoryImageChange })}
                   className="w-full bg-black border border-borderGray text-white px-3 py-2 focus:outline-none focus:border-accentRed rounded-none"
                 />
               </div>
