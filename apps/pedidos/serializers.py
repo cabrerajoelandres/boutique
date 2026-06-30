@@ -1,4 +1,5 @@
 from django.db import transaction
+from decimal import Decimal
 from rest_framework import serializers
 from .models import Pedido, ItemPedido
 from apps.carrito.models import Carrito
@@ -47,8 +48,8 @@ class PedidoSerializer(serializers.ModelSerializer):
         # Operación atómica para evitar inconsistencia de datos
         with transaction.atomic():
             subtotal = carrito.total
-            shipping_cost = 5.00  # Costo fijo de envío para este ejemplo
-            tax = subtotal * 0.12  # IVA 12%
+            shipping_cost = Decimal('5.00')  # Costo fijo de envío para este ejemplo
+            tax = subtotal * Decimal('0.12')  # IVA 12%
             total = subtotal + shipping_cost + tax
 
             # Crear el pedido

@@ -936,15 +936,15 @@ const AdminDashboard = () => {
                                 <div className="grid grid-cols-2 gap-6 text-[11px] text-textGray border-b border-borderGray pb-3">
                                   <div>
                                     <span className="font-bold text-white uppercase block mb-1">Dirección de Envío</span>
-                                    <p>{o.shipping_address?.address_line1 || 'No especificada'}</p>
-                                    {o.shipping_address?.address_line2 && <p>{o.shipping_address.address_line2}</p>}
-                                    <p>{o.shipping_address?.city}, {o.shipping_address?.state} - {o.shipping_address?.postal_code}</p>
-                                    <p>{o.shipping_address?.country}</p>
+                                    <p>{o.shipping_address?.full_name || 'No especificado'}</p>
+                                    <p>{o.shipping_address?.address || o.shipping_address?.address_line1 || 'No especificada'}</p>
+                                    <p>{o.shipping_address?.city}, {o.shipping_address?.province || o.shipping_address?.state || ''}</p>
                                   </div>
                                   <div>
                                     <span className="font-bold text-white uppercase block mb-1">Contacto</span>
                                     <p>Usuario: {o.user}</p>
                                     <p>Teléfono: {o.shipping_address?.phone || 'No especificado'}</p>
+                                    <p>Respaldo: {o.shipping_address?.backup_phone || 'No especificado'}</p>
                                   </div>
                                 </div>
 

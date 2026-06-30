@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axiosInstance from '../services/axiosInstance';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { FiShoppingBag, FiArrowLeft, FiCheck } from 'react-icons/fi';
 import Swal from 'sweetalert2';
 
 const ProductDetailPage = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const { addToCart } = useCart();
 
   const [product, setProduct] = useState(null);
@@ -293,55 +295,58 @@ const ProductDetailPage = () => {
             {/* Selector de cantidad y botones de compra */}
             <div className="space-y-4 pt-6 border-t border-borderGray">
               
-              {/* Cantidad */}
-              <div className="flex items-center space-x-4">
-                <span className="text-2xs uppercase tracking-widest text-textGray font-bold">Cantidad:</span>
-                <div className="flex items-center border border-borderGray">
-                  <button 
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-4 py-2 text-white hover:text-accentRed transition-colors"
-                  >
-                    -
-                  </button>
-                  <span className="px-4 text-xs font-semibold w-10 text-center">{quantity}</span>
-                  <button 
-                    onClick={() => {
-                      const maxStock = selectedVariant ? selectedVariant.stock : 99;
-                      setQuantity(Math.min(maxStock, quantity + 1));
-                    }}
-                    className="px-4 py-2 text-white hover:text-accentRed transition-colors"
-                  >
-                    +
-                  </button>
+              {!isAdmin && (
+                <div className="flex items-center space-x-4">
+                  <span className="text-2xs uppercase tracking-widest text-textGray font-bold">Cantidad:</span>
+                  <div className="flex items-center border border-borderGray">
+                    <button 
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="px-4 py-2 text-white hover:text-accentRed transition-colors"
+                    >
+                      -
+                    </button>
+                    <span className="px-4 text-xs font-semibold w-10 text-center">{quantity}</span>
+                    <button 
+                      onClick={() => {
+                        const maxStock = selectedVariant ? selectedVariant.stock : 99;
+                        setQuantity(Math.min(maxStock, quantity + 1));
+                      }}
+                      className="px-4 py-2 text-white hover:text-accentRed transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Botones */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  onClick={handleAddToCart}
-                  disabled={!selectedVariant || selectedVariant.stock <= 0}
-                  className="w-full bg-transparent hover:bg-white text-white hover:text-black border border-white disabled:border-borderGray disabled:text-textGray py-4 text-xs uppercase tracking-widest font-bold flex items-center justify-center space-x-2 transition-all duration-300 rounded-none"
-                >
-                  <FiShoppingBag />
-                  <span>Agregar al Carrito</span>
-                </button>
-                
-                <button
-                  onClick={async () => {
-                    if (selectedVariant && selectedVariant.stock > 0) {
-                      const res = await addToCart(selectedVariant.id, quantity);
-                      if (res.success) navigate('/cart');
-                    } else {
-                      handleAddToCart();
-                    }
-                  }}
-                  disabled={!selectedVariant || selectedVariant.stock <= 0}
-                  className="w-full bg-accentRed hover:bg-accentRedHover disabled:bg-red-950 text-white py-4 text-xs uppercase tracking-widest font-bold transition-all duration-300 rounded-none"
-                >
-                  Comprar Ahora
-                </button>
-              </div>
+              {!isAdmin && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={!selectedVariant || selectedVariant.stock <= 0}
+                    className="w-full bg-transparent hover:bg-white text-white hover:text-black border border-white disabled:border-borderGray disabled:text-textGray py-4 text-xs uppercase tracking-widest font-bold flex items-center justify-center space-x-2 transition-all duration-300 rounded-none"
+                  >
+                    <FiShoppingBag />
+                    <span>Agregar al Carrito</span>
+                  </button>
+                  
+                  <button
+                    onClick={async () => {
+                      if (selectedVariant && selectedVariant.stock > 0) {
+                        const res = await addToCart(selectedVariant.id, quantity);
+                        if (res.success) navigate('/cart');
+                      } else {
+                        handleAddToCart();
+                      }
+                    }}
+                    disabled={!selectedVariant || selectedVariant.stock <= 0}
+                    className="w-full bg-accentRed hover:bg-accentRedHover disabled:bg-red-950 text-white py-4 text-xs uppercase tracking-widest font-bold transition-all duration-300 rounded-none"
+                  >
+                    Comprar Ahora
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>
