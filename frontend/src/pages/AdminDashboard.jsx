@@ -309,6 +309,23 @@ const AdminDashboard = () => {
     setProductVariants(list);
   };
 
+  // Agrupar variantes por color para mostrarlas como bloques más limpios
+  const groupedVariants = productVariants.reduce((groups, variant, index) => {
+    const colorKey = variant.color || '__empty__';
+    if (!groups[colorKey]) {
+      groups[colorKey] = [];
+    }
+    groups[colorKey].push({ ...variant, index });
+    return groups;
+  }, {});
+
+  const addVariantForColor = (color) => {
+    setProductVariants((current) => [
+      ...current,
+      { color, size: '', stock: 0, image: null }
+    ]);
+  };
+
   // Cambiar estado de pedido
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
     try {
@@ -609,6 +626,7 @@ const AdminDashboard = () => {
                 <thead>
                   <tr className="border-b border-borderGray bg-black text-textGray uppercase tracking-wider">
                     <th className="p-4 font-semibold">SKU</th>
+                    <th className="p-4 font-semibold">Imagen</th>
                     <th className="p-4 font-semibold">Nombre</th>
                     <th className="p-4 font-semibold">Categoría</th>
                     <th className="p-4 font-semibold">Precio</th>
@@ -621,6 +639,19 @@ const AdminDashboard = () => {
                   {products.map((p) => (
                     <tr key={p.id} className="hover:bg-bgCardHover">
                       <td className="p-4 font-mono">{p.sku}</td>
+                      <td className="p-4">
+                        {p.image_principal ? (
+                          <img
+                            src={p.image_principal}
+                            alt={p.name}
+                            className="w-14 h-14 object-contain border border-borderGray bg-white p-0.5"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 bg-neutral-900 border border-borderGray flex items-center justify-center text-textGray text-[9px] uppercase font-bold">
+                            Sin Foto
+                          </div>
+                        )}
+                      </td>
                       <td className="p-4 font-semibold text-white">{p.name}</td>
                       <td className="p-4 text-textGray">{p.category_detail?.name}</td>
                       <td className="p-4 font-bold">${parseFloat(p.price).toFixed(2)}</td>
@@ -1276,90 +1307,132 @@ const AdminDashboard = () => {
                     />
                   </div>
                 ) : (
-                  <div className="space-y-3 bg-black border border-borderGray p-4">
-                    <div className="flex justify-between items-baseline mb-2">
-                      <h4 className="text-2xs uppercase tracking-widest font-bold text-textGray">Tabla de Variantes</h4>
-                      <button 
+                  <div className="space-y-4 bg-black border border-borderGray p-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <div>
+                        <h4 className="text-2xs uppercase tracking-widest font-bold text-textGray">Variantes por color</h4>
+                        <p className="text-[10px] text-textGray mt-1">Agrega tallas dentro de cada color sin repetir todo el bloque.</p>
+                      </div>
+                      <button
                         type="button"
-                        onClick={addVariantRow}
+                        onClick={() => addVariantForColor('')}
                         className="text-accentRed hover:text-white uppercase font-bold text-3xs tracking-wider"
                       >
-                        + Agregar Fila
+                        + Agregar Color
                       </button>
                     </div>
- 
-                    <div className="space-y-3">
-                      {productVariants.map((v, index) => (
-                        <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end border-b border-borderGray/30 pb-3">
-                          <div>
-                            <label className="text-[10px] text-textGray uppercase tracking-wider mb-1 block">Color</label>
-                            <input 
-                              type="text" 
-                              placeholder="Negro"
-                              value={v.color}
-                              onChange={(e) => handleVariantFieldChange(index, 'color', e.target.value)}
-                              className="w-full bg-black border border-borderGray text-white px-2.5 py-2 focus:outline-none focus:border-accentRed rounded-none text-xs"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-textGray uppercase tracking-wider mb-1 block">Talla (Opcional)</label>
-                            <select 
-                              value={v.size}
-                              onChange={(e) => handleVariantFieldChange(index, 'size', e.target.value)}
-                              className="w-full bg-black border border-borderGray text-white px-2.5 py-2 focus:outline-none focus:border-accentRed rounded-none text-xs"
-                            >
-                              {SIZE_OPTIONS.map((option) => (
-                                <option key={option.value || 'unique'} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-textGray uppercase tracking-wider mb-1 block">Stock</label>
-                            <input 
-                              type="number" 
-                              value={v.stock}
-                              onChange={(e) => handleVariantFieldChange(index, 'stock', parseInt(e.target.value) || 0)}
-                              className="w-full bg-black border border-borderGray text-white px-2.5 py-2 focus:outline-none focus:border-accentRed rounded-none text-xs"
-                              required
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {v.image_preview && !v.image && (
-                              <img 
-                                src={v.image_preview} 
-                                alt="Miniatura Variante" 
-                                className="w-8 h-8 object-contain bg-white border border-borderGray p-0.5 shrink-0" 
-                              />
-                            )}
-                            {v.image && (
-                              <div className="w-8 h-8 border border-green-500 bg-black flex items-center justify-center text-[7px] font-bold text-green-500 shrink-0 uppercase">
-                                Nuevo
+
+                    <div className="space-y-4">
+                      {Object.entries(groupedVariants).map(([colorKey, variantsInGroup]) => {
+                        const representative = variantsInGroup[0];
+                        const currentColor = representative.color || '';
+                        const imageVariant =
+                          variantsInGroup.find((variant) => variant.image_preview || variant.image) || representative;
+
+                        return (
+                          <div key={colorKey} className="border border-borderGray bg-bgCard p-4 space-y-3">
+                            <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr_auto] gap-3 items-end">
+                              <div className="space-y-1">
+                                <label className="text-[10px] text-textGray uppercase tracking-wider block">Color</label>
+                                <input
+                                  type="text"
+                                  value={currentColor}
+                                  onChange={(e) => {
+                                    const newColor = e.target.value;
+                                    setProductVariants((current) =>
+                                      current.map((variant, variantIndex) =>
+                                        variantsInGroup.some((groupVariant) => groupVariant.index === variantIndex)
+                                          ? { ...variant, color: newColor }
+                                          : variant
+                                      )
+                                    );
+                                  }}
+                                  placeholder="Negro"
+                                  className="w-full bg-black border border-borderGray text-white px-3 py-2.5 focus:outline-none focus:border-accentRed rounded-none text-xs"
+                                  required
+                                />
                               </div>
-                            )}
-                            <div className="flex-1 relative overflow-hidden border border-borderGray bg-black text-center py-2 text-3xs font-semibold uppercase hover:border-white transition-colors cursor-pointer">
-                              <input 
-                                type="file" 
-                                accept="image/*"
-                                onChange={(e) => handleVariantFieldChange(index, 'image', e.target.files[0])}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              />
-                              <span>{v.image ? "Reemplazar" : v.image_preview ? "Cambiar" : "Foto"}</span>
-                            </div>
-                            {productVariants.length > 1 && (
-                              <button 
-                                type="button" 
-                                onClick={() => removeVariantRow(index)}
-                                className="text-red-500 hover:text-white p-2"
+
+                              <div className="space-y-1">
+                                <label className="text-[10px] text-textGray uppercase tracking-wider block">Imagen del color</label>
+                                <div className="flex items-center gap-3">
+                                  {imageVariant?.image_preview && !imageVariant?.image && (
+                                    <img
+                                      src={imageVariant.image_preview}
+                                      alt="Miniatura Color"
+                                      className="w-12 h-12 object-contain bg-white border border-borderGray p-0.5 shrink-0"
+                                    />
+                                  )}
+                                  {imageVariant?.image && (
+                                    <div className="w-12 h-12 border border-green-500 bg-black flex items-center justify-center text-[8px] font-bold text-green-500 shrink-0 uppercase">
+                                      Nuevo
+                                    </div>
+                                  )}
+                                  <div className="flex-1 relative overflow-hidden border border-borderGray bg-black text-center py-3 text-3xs font-semibold uppercase hover:border-white transition-colors cursor-pointer">
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => handleVariantFieldChange(imageVariant.index, 'image', e.target.files[0])}
+                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    />
+                                    <span>{imageVariant?.image ? 'Reemplazar' : imageVariant?.image_preview ? 'Cambiar' : 'Subir imagen'}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => addVariantForColor(currentColor)}
+                                className="shrink-0 text-accentRed hover:text-white uppercase font-bold text-3xs tracking-wider lg:justify-self-end"
                               >
-                                <FiTrash2 className="w-4 h-4" />
+                                + Agregar talla
                               </button>
-                            )}
+                            </div>
+
+                            <div className="space-y-3 border-t border-borderGray/30 pt-3">
+                              {variantsInGroup.map((v) => (
+                                <div key={v.id || `${v.color}-${v.size}-${v.index}`} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
+                                  <div>
+                                    <label className="text-[10px] text-textGray uppercase tracking-wider mb-1 block">Talla</label>
+                                    <select
+                                      value={v.size}
+                                      onChange={(e) => handleVariantFieldChange(v.index, 'size', e.target.value)}
+                                      className="w-full bg-black border border-borderGray text-white px-2.5 py-2 focus:outline-none focus:border-accentRed rounded-none text-xs"
+                                    >
+                                      {SIZE_OPTIONS.map((option) => (
+                                        <option key={option.value || 'unique'} value={option.value}>
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] text-textGray uppercase tracking-wider mb-1 block">Stock</label>
+                                    <input
+                                      type="number"
+                                      value={v.stock}
+                                      onChange={(e) => handleVariantFieldChange(v.index, 'stock', parseInt(e.target.value) || 0)}
+                                      className="w-full bg-black border border-borderGray text-white px-2.5 py-2 focus:outline-none focus:border-accentRed rounded-none text-xs"
+                                      required
+                                    />
+                                  </div>
+                                  <div className="flex items-center justify-end">
+                                    {productVariants.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => removeVariantRow(v.index)}
+                                        className="text-red-500 hover:text-white p-2"
+                                      >
+                                        <FiTrash2 className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
