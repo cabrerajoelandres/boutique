@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../services/axiosInstance';
 import { useForm } from 'react-hook-form';
-import { FiCopy, FiUpload, FiArrowLeft } from 'react-icons/fi';
+import { FiCopy, FiUpload, FiArrowLeft, FiUser, FiPhone, FiMapPin, FiHome, FiShoppingCart } from 'react-icons/fi';
 import Swal from 'sweetalert2';
 
 const TRANSFER_DATA = {
@@ -85,13 +85,11 @@ const CheckoutPage = () => {
     });
   };
 
-  const stepFields = {
-    1: ['full_name', 'phone', 'backup_phone', 'province', 'city', 'address'],
-  };
+  const stepFields = ['full_name', 'phone', 'backup_phone', 'province', 'city', 'address'];
 
   const goNext = async () => {
     if (currentStep === 1) {
-      const valid = await trigger(stepFields[1]);
+      const valid = await trigger(stepFields);
       if (valid) setCurrentStep(2);
       return;
     }
@@ -112,23 +110,25 @@ const CheckoutPage = () => {
     }
   };
 
-  const goBack = () => {
-    setCurrentStep((prev) => Math.max(1, prev - 1));
-  };
+  const goBack = () => setCurrentStep((prev) => Math.max(1, prev - 1));
 
   const handleFinalize = async () => {
-    const valid = await trigger(stepFields[1]);
-    if (!valid || !receiptFile) {
-      if (!receiptFile) {
-        Swal.fire({
-          title: 'Falta el comprobante',
-          text: 'No puedes enviar la compra sin subir el comprobante.',
-          icon: 'warning',
-          confirmButtonColor: '#E50914',
-          background: '#0b0b0b',
-          color: '#ffffff',
-        });
-      }
+    const valid = await trigger(stepFields);
+    if (!valid) {
+      setCurrentStep(1);
+      return;
+    }
+
+    if (!receiptFile) {
+      setCurrentStep(2);
+      Swal.fire({
+        title: 'Falta el comprobante',
+        text: 'No puedes enviar la compra sin subir el comprobante.',
+        icon: 'warning',
+        confirmButtonColor: '#E50914',
+        background: '#0b0b0b',
+        color: '#ffffff',
+      });
       return;
     }
 
@@ -188,17 +188,25 @@ const CheckoutPage = () => {
     }
   };
 
-  const stepClass = (step) =>
-    `flex flex-col items-center gap-2 ${currentStep >= step ? 'text-white' : 'text-textGray'}`;
+  const getStepState = (step) => {
+    if (currentStep > step) return 'done';
+    if (currentStep === step) return 'active';
+    return 'pending';
+  };
 
-  const circleClass = (step) =>
-    `w-10 h-10 rounded-full flex items-center justify-center border text-sm font-bold ${
-      currentStep > step
-        ? 'bg-accentRed border-accentRed text-white'
-        : currentStep === step
-          ? 'bg-white text-black border-white'
-          : 'bg-transparent border-borderGray text-textGray'
+  const circleClass = (step) => {
+    const state = getStepState(step);
+    return `w-12 h-12 rounded-full flex items-center justify-center border-2 text-sm font-black transition-all duration-300 shadow-lg ${
+      state === 'done'
+        ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/30'
+        : state === 'active'
+          ? 'bg-black border-textGray text-white shadow-white/10 scale-105'
+          : 'bg-black border-borderGray text-textGray'
     }`;
+  };
+
+  const inputClass =
+    'w-full bg-black border border-borderGray text-white text-xs px-4 py-3.5 focus:outline-none focus:border-accentRed focus:ring-1 focus:ring-accentRed/40 rounded-lg transition-all duration-300 hover:border-textGray';
 
   return (
     <div className="bg-black text-white min-h-screen pt-28 pb-20 px-6 lg:px-12">
@@ -210,122 +218,162 @@ const CheckoutPage = () => {
           </p>
         </div>
 
-        <div className="flex items-center justify-center gap-4 sm:gap-10 mb-10">
-          <div className={stepClass(1)}>
-            <div className={circleClass(1)}>{currentStep > 1 ? '✓' : '1'}</div>
-            <span className="text-2xs uppercase tracking-widest">Datos</span>
-          </div>
-          <div className="h-px w-10 sm:w-24 bg-borderGray" />
-          <div className={stepClass(2)}>
-            <div className={circleClass(2)}>{currentStep > 2 ? '✓' : '2'}</div>
-            <span className="text-2xs uppercase tracking-widest">Transferencia</span>
-          </div>
-          <div className="h-px w-10 sm:w-24 bg-borderGray" />
-          <div className={stepClass(3)}>
-            <div className={circleClass(3)}>{currentStep === 3 ? '3' : '✓'}</div>
-            <span className="text-2xs uppercase tracking-widest">Resumen</span>
+        <div className="mx-auto mb-10 pt-2 max-w-5xl px-4 sm:px-10">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <div className={circleClass(1)}>{currentStep > 1 ? '✓' : '1'}</div>
+              <span className={`text-sm capitalize tracking-wide ${getStepState(1) === 'active' ? 'text-white' : getStepState(1) === 'done' ? 'text-emerald-400' : 'text-textGray'}`}>Datos</span>
+            </div>
+
+            <div className="flex-1 px-4 sm:px-8">
+              <div className={`h-1 rounded-full transition-all duration-500 ${currentStep > 1 ? 'bg-emerald-500' : 'bg-borderGray'}`} />
+            </div>
+
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <div className={circleClass(2)}>{currentStep > 2 ? '✓' : '2'}</div>
+              <span className={`text-sm capitalize tracking-wide ${getStepState(2) === 'active' ? 'text-white' : getStepState(2) === 'done' ? 'text-emerald-400' : 'text-textGray'}`}>Transferencia</span>
+            </div>
+
+            <div className="flex-1 px-4 sm:px-8">
+              <div className={`h-1 rounded-full transition-all duration-500 ${currentStep > 2 ? 'bg-emerald-500' : 'bg-borderGray'}`} />
+            </div>
+
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <div className={circleClass(3)}>
+                <FiShoppingCart className="w-4 h-4" />
+              </div>
+              <span className={`text-sm capitalize tracking-wide ${getStepState(3) === 'active' ? 'text-white' : getStepState(3) === 'done' ? 'text-emerald-400' : 'text-textGray'}`}>Resumen</span>
+            </div>
           </div>
         </div>
 
-        <div className="bg-bgCard border border-borderGray p-6 md:p-8">
+        <div className="bg-bgCard/95 border border-borderGray rounded-2xl shadow-2xl shadow-black/30 p-6 md:p-8 backdrop-blur-sm">
           {currentStep === 1 && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <form className="lg:col-span-2 space-y-5">
-                <h3 className="text-xs uppercase tracking-widest font-bold text-white border-b border-borderGray pb-3">
-                  Datos de Envío
-                </h3>
-
-                <div className="space-y-2">
-                  <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">
-                    Nombres y Apellidos Completos
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ej: María Fernanda López"
-                    {...register('full_name', { required: 'Este campo es obligatorio' })}
-                    className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
-                  />
-                  {errors.full_name && <p className="text-red-500 text-2xs">{errors.full_name.message}</p>}
+                <div className="flex items-center justify-between border-b border-borderGray pb-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">Datos de envío</h3>
+                    <p className="text-[10px] text-textGray mt-1">Ingresa la información del comprador y destino.</p>
+                  </div>
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-accentRed">Paso 1</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-black/60 border border-borderGray rounded-xl p-5 space-y-5 shadow-lg">
                   <div className="space-y-2">
-                    <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">
-                      Número Telefónico
+                    <label className="flex items-center gap-2 text-xs text-textGray font-semibold">
+                      <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                        <FiUser className="w-3.5 h-3.5" />
+                      </span>
+                      Nombres y apellidos completos
                     </label>
                     <input
                       type="text"
-                      placeholder="Ej: 0991234567"
-                      {...register('phone', { required: 'Este campo es obligatorio' })}
-                      className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
+                      placeholder="Ej: María Fernanda López"
+                      {...register('full_name', { required: 'Este campo es obligatorio' })}
+                      className={inputClass}
                     />
-                    {errors.phone && <p className="text-red-500 text-2xs">{errors.phone.message}</p>}
+                    {errors.full_name && <p className="text-red-500 text-2xs">{errors.full_name.message}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-textGray font-semibold">
+                        <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                          <FiPhone className="w-3.5 h-3.5" />
+                        </span>
+                        Número telefónico
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej: 0991234567"
+                        {...register('phone', { required: 'Este campo es obligatorio' })}
+                        className={inputClass}
+                      />
+                      {errors.phone && <p className="text-red-500 text-2xs">{errors.phone.message}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-textGray font-semibold">
+                        <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                          <FiPhone className="w-3.5 h-3.5" />
+                        </span>
+                        Número telefónico de respaldo
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej: 0987654321"
+                        {...register('backup_phone', { required: 'Este campo es obligatorio' })}
+                        className={inputClass}
+                      />
+                      {errors.backup_phone && <p className="text-red-500 text-2xs">{errors.backup_phone.message}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-textGray font-semibold">
+                        <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                          <FiMapPin className="w-3.5 h-3.5" />
+                        </span>
+                        Provincia
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Pichincha"
+                        {...register('province', { required: 'Este campo es obligatorio' })}
+                        className={inputClass}
+                      />
+                      {errors.province && <p className="text-red-500 text-2xs">{errors.province.message}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-textGray font-semibold">
+                        <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                          <FiMapPin className="w-3.5 h-3.5" />
+                        </span>
+                        Ciudad
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Quito"
+                        {...register('city', { required: 'Este campo es obligatorio' })}
+                        className={inputClass}
+                      />
+                      {errors.city && <p className="text-red-500 text-2xs">{errors.city.message}</p>}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">
-                      Número Telefónico de respaldo
+                    <label className="flex items-center gap-2 text-xs text-textGray font-semibold">
+                      <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                        <FiHome className="w-3.5 h-3.5" />
+                      </span>
+                      Dirección domiciliaria
                     </label>
                     <input
                       type="text"
-                      placeholder="Ej: 0987654321"
-                      {...register('backup_phone', { required: 'Este campo es obligatorio' })}
-                      className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
+                      placeholder="Calle principal, número, sector, referencia"
+                      {...register('address', { required: 'Este campo es obligatorio' })}
+                      className={inputClass}
                     />
-                    {errors.backup_phone && <p className="text-red-500 text-2xs">{errors.backup_phone.message}</p>}
+                    {errors.address && <p className="text-red-500 text-2xs">{errors.address.message}</p>}
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">Provincia</label>
-                    <input
-                      type="text"
-                      placeholder="Pichincha"
-                      {...register('province', { required: 'Este campo es obligatorio' })}
-                      className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
-                    />
-                    {errors.province && <p className="text-red-500 text-2xs">{errors.province.message}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">Ciudad</label>
-                    <input
-                      type="text"
-                      placeholder="Quito"
-                      {...register('city', { required: 'Este campo es obligatorio' })}
-                      className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
-                    />
-                    {errors.city && <p className="text-red-500 text-2xs">{errors.city.message}</p>}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">
-                    Dirección Domiciliaria
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Calle principal, número, sector, referencia"
-                    {...register('address', { required: 'Este campo es obligatorio' })}
-                    className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
-                  />
-                  {errors.address && <p className="text-red-500 text-2xs">{errors.address.message}</p>}
                 </div>
 
                 <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={goNext}
-                    className="bg-white hover:bg-accentRed text-black hover:text-white px-6 py-3 text-xs uppercase tracking-widest font-bold transition-all duration-300"
+                    className="bg-accentRed hover:bg-accentRedHover text-white px-6 py-3 text-xs uppercase tracking-widest font-bold transition-all duration-300 rounded-lg shadow-lg shadow-accentRed/20"
                   >
                     Continuar
                   </button>
                 </div>
               </form>
 
-              <div className="bg-black border border-borderGray p-6 h-fit space-y-4">
-                <h3 className="text-xs uppercase tracking-widest font-bold text-white border-b border-borderGray pb-3">
+              <div className="bg-black/60 border border-borderGray rounded-xl p-6 h-fit space-y-4 shadow-lg">
+                <h3 className="text-xs uppercase tracking-[0.3em] font-bold text-white border-b border-borderGray pb-3">
                   Resumen
                 </h3>
                 <div className="space-y-2 text-xs text-textGray">
@@ -361,11 +409,12 @@ const CheckoutPage = () => {
           {currentStep === 2 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-6">
-                <h3 className="text-xs uppercase tracking-widest font-bold text-white border-b border-borderGray pb-3">
-                  Datos de Transferencia
-                </h3>
+                <div className="flex items-center justify-between border-b border-borderGray pb-3">
+                  <h3 className="text-xs uppercase tracking-[0.3em] font-bold text-white">Datos de Transferencia</h3>
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-accentRed">Paso 2</span>
+                </div>
 
-                <div className="bg-black border border-borderGray p-5 space-y-3.5 text-xs">
+                <div className="bg-black/60 border border-borderGray rounded-xl p-5 space-y-3.5 text-xs shadow-lg">
                   <div className="flex justify-between">
                     <span className="text-textGray">Banco:</span>
                     <span className="text-white font-semibold">{TRANSFER_DATA.bank}</span>
@@ -400,11 +449,12 @@ const CheckoutPage = () => {
               </div>
 
               <div className="space-y-6">
-                <h3 className="text-xs uppercase tracking-widest font-bold text-white border-b border-borderGray pb-3">
-                  Subir Comprobante
-                </h3>
+                <div className="flex items-center justify-between border-b border-borderGray pb-3">
+                  <h3 className="text-xs uppercase tracking-[0.3em] font-bold text-white">Subir Comprobante</h3>
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-accentRed">Paso 2</span>
+                </div>
 
-                <div className="border border-dashed border-borderGray hover:border-accentRed bg-black p-8 text-center relative cursor-pointer transition-colors group">
+                <div className="border border-dashed border-borderGray hover:border-accentRed bg-black/60 p-8 text-center relative cursor-pointer transition-all duration-300 group rounded-xl shadow-lg hover:shadow-accentRed/10">
                   <input
                     type="file"
                     accept="image/*"
@@ -416,10 +466,13 @@ const CheckoutPage = () => {
                     <span className="text-xs text-textGray font-semibold block">
                       {receiptFile ? receiptFile.name : 'Selecciona una imagen del comprobante'}
                     </span>
+                    <span className="text-2xs uppercase tracking-[0.25em] text-textGray">
+                      Arrastra o haz clic para subir
+                    </span>
                   </div>
                 </div>
 
-                <div className="bg-black border border-borderGray p-5 text-xs text-textGray leading-relaxed">
+                <div className="bg-black/60 border border-borderGray rounded-xl p-5 text-xs text-textGray leading-relaxed">
                   Sube una captura clara del comprobante antes de continuar al último paso.
                 </div>
 
@@ -427,7 +480,7 @@ const CheckoutPage = () => {
                   <button
                     type="button"
                     onClick={goBack}
-                    className="border border-borderGray text-white hover:text-accentRed px-6 py-3 text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2"
+                    className="border border-borderGray text-white hover:text-accentRed px-6 py-3 text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 rounded-lg transition-all duration-300"
                   >
                     <FiArrowLeft />
                     Atrás
@@ -435,7 +488,7 @@ const CheckoutPage = () => {
                   <button
                     type="button"
                     onClick={goNext}
-                    className="bg-white hover:bg-accentRed text-black hover:text-white px-6 py-3 text-xs uppercase tracking-widest font-bold transition-all duration-300"
+                    className="bg-accentRed hover:bg-accentRedHover text-white px-6 py-3 text-xs uppercase tracking-widest font-bold transition-all duration-300 rounded-lg shadow-lg shadow-accentRed/20"
                   >
                     Continuar
                   </button>
@@ -447,11 +500,12 @@ const CheckoutPage = () => {
           {currentStep === 3 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-6">
-                <h3 className="text-xs uppercase tracking-widest font-bold text-white border-b border-borderGray pb-3">
-                  Confirmar Datos
-                </h3>
+                <div className="flex items-center justify-between border-b border-borderGray pb-3">
+                  <h3 className="text-xs uppercase tracking-[0.3em] font-bold text-white">Confirmar Datos</h3>
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-accentRed">Paso 3</span>
+                </div>
 
-                <div className="bg-black border border-borderGray p-5 space-y-3 text-xs">
+                <div className="bg-black/60 border border-borderGray rounded-xl p-5 space-y-3 text-xs shadow-lg">
                   <div className="flex justify-between gap-4">
                     <span className="text-textGray">Nombre:</span>
                     <span className="text-white text-right">{formValues.full_name || '-'}</span>
@@ -476,8 +530,8 @@ const CheckoutPage = () => {
                   </div>
                 </div>
 
-                <div className="bg-black border border-borderGray p-5 space-y-3 text-xs">
-                  <h4 className="uppercase tracking-widest font-bold text-white">Comprobante</h4>
+                <div className="bg-black/60 border border-borderGray rounded-xl p-5 space-y-3 text-xs shadow-lg">
+                  <h4 className="uppercase tracking-[0.25em] font-bold text-white">Comprobante</h4>
                   <div className="flex justify-between gap-4">
                     <span className="text-textGray">Archivo:</span>
                     <span className="text-white text-right">{receiptFile ? receiptFile.name : 'No seleccionado'}</span>
@@ -486,11 +540,12 @@ const CheckoutPage = () => {
               </div>
 
               <div className="space-y-6">
-                <h3 className="text-xs uppercase tracking-widest font-bold text-white border-b border-borderGray pb-3">
-                  Resumen Final
-                </h3>
+                <div className="flex items-center justify-between border-b border-borderGray pb-3">
+                  <h3 className="text-xs uppercase tracking-[0.3em] font-bold text-white">Resumen Final</h3>
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-accentRed">Revisión</span>
+                </div>
 
-                <div className="bg-black border border-borderGray p-5 space-y-4 text-xs">
+                <div className="bg-black/60 border border-borderGray rounded-xl p-5 space-y-4 text-xs shadow-lg">
                   {cart.items.map((item) => (
                     <div key={item.id} className="flex justify-between gap-4">
                       <span className="text-textGray truncate max-w-[220px]">
@@ -523,7 +578,7 @@ const CheckoutPage = () => {
                   <button
                     type="button"
                     onClick={goBack}
-                    className="border border-borderGray text-white hover:text-accentRed px-6 py-3 text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2"
+                    className="border border-borderGray text-white hover:text-accentRed px-6 py-3 text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 rounded-lg transition-all duration-300"
                   >
                     <FiArrowLeft />
                     Atrás
@@ -532,7 +587,7 @@ const CheckoutPage = () => {
                     type="button"
                     onClick={handleFinalize}
                     disabled={uploading}
-                    className="bg-accentRed hover:bg-accentRedHover disabled:bg-red-950 text-white px-6 py-3 text-xs uppercase tracking-widest font-bold transition-all duration-300"
+                    className="bg-emerald-500 hover:bg-emerald-400 text-black px-6 py-3 text-xs uppercase tracking-widest font-black transition-all duration-300 rounded-lg shadow-lg shadow-emerald-500/20 disabled:bg-emerald-950 disabled:text-white"
                   >
                     {uploading ? 'Enviando...' : 'Enviar'}
                   </button>
