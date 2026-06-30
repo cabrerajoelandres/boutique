@@ -3,14 +3,26 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../services/axiosInstance';
 import { useForm } from 'react-hook-form';
-import { FiUser, FiShoppingBag, FiCheckCircle, FiClock, FiTruck, FiAlertCircle, FiXCircle, FiUpload, FiPackage, FiMapPin, FiCreditCard } from 'react-icons/fi';
+import { FiUser, FiShoppingBag, FiCheckCircle, FiClock, FiTruck, FiAlertCircle, FiXCircle, FiUpload, FiPackage, FiMapPin, FiCreditCard, FiPhone, FiHome } from 'react-icons/fi';
 import Swal from 'sweetalert2';
+
+const ORDER_STATUS_FILTERS = [
+  { value: 'ALL', label: 'Todos' },
+  { value: 'PENDING', label: 'Pendiente' },
+  { value: 'PAYMENT_TO_VERIFY', label: 'Por verificar' },
+  { value: 'PAYMENT_APPROVED', label: 'Pago aprobado' },
+  { value: 'PREPARING', label: 'Preparando' },
+  { value: 'SHIPPED', label: 'Enviado' },
+  { value: 'DELIVERED', label: 'Entregado' },
+  { value: 'CANCELLED', label: 'Cancelado' },
+];
 
 const ProfilePage = () => {
   const { user, updateProfile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
   
   // Tab activa ("profile" o "orders")
   const activeTab = searchParams.get('tab') || 'profile';
@@ -24,12 +36,11 @@ const ProfilePage = () => {
       setValue("last_name", user.last_name || "");
       if (user.perfil) {
         setValue("phone", user.perfil.phone || "");
+        setValue("backup_phone", user.perfil.backup_phone || "");
+        setValue("province", user.perfil.province || user.perfil.state || "");
         setValue("address_line1", user.perfil.address_line1 || "");
         setValue("address_line2", user.perfil.address_line2 || "");
         setValue("city", user.perfil.city || "");
-        setValue("state", user.perfil.state || "");
-        setValue("postal_code", user.perfil.postal_code || "");
-        setValue("country", user.perfil.country || "Ecuador");
       }
     }
   }, [user, setValue]);
@@ -59,12 +70,11 @@ const ProfilePage = () => {
       last_name: data.last_name,
       perfil: {
         phone: data.phone,
+        backup_phone: data.backup_phone,
+        province: data.province,
         address_line1: data.address_line1,
         address_line2: data.address_line2,
         city: data.city,
-        state: data.state,
-        postal_code: data.postal_code,
-        country: data.country
       }
     };
 
@@ -74,7 +84,7 @@ const ProfilePage = () => {
         toast: true,
         position: 'top-end',
         icon: 'success',
-        title: 'Perfil actualizado con Ã©xito',
+        title: 'Perfil actualizado con éxito',
         showConfirmButton: false,
         timer: 1500,
         background: '#0b0b0b',
@@ -103,7 +113,7 @@ const ProfilePage = () => {
       });
       Swal.fire({
         title: 'Comprobante subido',
-        text: 'El comprobante fue cargado con Ã©xito. Validaremos tu pago a la brevedad.',
+        text: 'El comprobante fue cargado con éxito. Validaremos tu pago a la brevedad.',
         icon: 'success',
         confirmButtonColor: '#E50914',
         background: '#0b0b0b',
@@ -198,14 +208,19 @@ const ProfilePage = () => {
     const line = address.address || address.address_line1 || 'No especificada';
     const city = address.city || '';
     const province = address.province || address.state || '';
-    return [line, city, province].filter(Boolean).join(' Â· ');
+    return [line, city, province].filter(Boolean).join(' · ');
   };
+
+  const filteredOrders =
+    orderStatusFilter === 'ALL'
+      ? orders
+      : orders.filter((order) => order.status === orderStatusFilter);
 
   return (
     <div className="bg-black text-white min-h-screen pt-28 pb-20 px-6 lg:px-12">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-10">
         
-        {/* Sidebar de NavegaciÃ³n del Perfil */}
+        {/* Sidebar de Navegación del Perfil */}
         <aside className="w-full md:w-64 shrink-0 space-y-4">
           <div className="bg-bgCard border border-borderGray p-6 text-center space-y-3">
             <div className="w-16 h-16 bg-neutral-900 rounded-full flex items-center justify-center text-accentRed text-2xl font-bold mx-auto border border-borderGray">
@@ -249,103 +264,134 @@ const ProfilePage = () => {
           {activeTab === 'profile' || user?.role === 'Admin' ? (
             /* TAB: MI PERFIL */
             <div className="space-y-6">
-              <h2 className="text-sm font-bold uppercase tracking-widest border-b border-borderGray pb-3">InformaciÃ³n del Perfil</h2>
+              <div className="flex items-end justify-between gap-3 border-b border-borderGray pb-4">
+                <div>
+                  <h2 className="text-sm font-bold capitalize tracking-widest">Información del perfil</h2>
+                  <p className="text-[10px] text-textGray mt-1">Actualiza tus datos para que se completen automáticamente al pagar.</p>
+                </div>
+                <FiUser className="w-5 h-5 text-accentRed hidden sm:block" />
+              </div>
               
               <form onSubmit={handleSubmit(handleUpdateProfile)} className="space-y-5">
                 
-                {/* Datos de contacto bÃ¡sicos */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-black/60 border border-borderGray rounded-2xl p-5 space-y-5 shadow-lg">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-textGray font-semibold capitalize">
+                        <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                          <FiUser className="w-3.5 h-3.5" />
+                        </span>
+                        Nombre
+                      </label>
+                      <input 
+                        type="text"
+                        {...register("first_name", { required: "Requerido" })}
+                        className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3.5 focus:outline-none focus:border-accentRed focus:ring-1 focus:ring-accentRed/40 rounded-lg transition-all duration-300 hover:border-textGray"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-textGray font-semibold capitalize">
+                        <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                          <FiUser className="w-3.5 h-3.5" />
+                        </span>
+                        Apellido
+                      </label>
+                      <input 
+                        type="text"
+                        {...register("last_name", { required: "Requerido" })}
+                        className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3.5 focus:outline-none focus:border-accentRed focus:ring-1 focus:ring-accentRed/40 rounded-lg transition-all duration-300 hover:border-textGray"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-textGray font-semibold capitalize">
+                        <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                          <FiPhone className="w-3.5 h-3.5" />
+                        </span>
+                        Teléfono
+                      </label>
+                      <input 
+                        type="text"
+                        {...register("phone")}
+                        className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3.5 focus:outline-none focus:border-accentRed focus:ring-1 focus:ring-accentRed/40 rounded-lg transition-all duration-300 hover:border-textGray"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-textGray font-semibold capitalize">
+                        <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                          <FiPhone className="w-3.5 h-3.5" />
+                        </span>
+                        Teléfono de respaldo
+                      </label>
+                      <input 
+                        type="text"
+                        {...register("backup_phone")}
+                        className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3.5 focus:outline-none focus:border-accentRed focus:ring-1 focus:ring-accentRed/40 rounded-lg transition-all duration-300 hover:border-textGray"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-textGray font-semibold capitalize">
+                        <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                          <FiMapPin className="w-3.5 h-3.5" />
+                        </span>
+                        Provincia
+                      </label>
+                      <input 
+                        type="text"
+                        {...register("province")}
+                        className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3.5 focus:outline-none focus:border-accentRed focus:ring-1 focus:ring-accentRed/40 rounded-lg transition-all duration-300 hover:border-textGray"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-textGray font-semibold capitalize">
+                        <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                          <FiMapPin className="w-3.5 h-3.5" />
+                        </span>
+                        Ciudad
+                      </label>
+                      <input 
+                        type="text"
+                        {...register("city")}
+                        className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3.5 focus:outline-none focus:border-accentRed focus:ring-1 focus:ring-accentRed/40 rounded-lg transition-all duration-300 hover:border-textGray"
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">Nombre</label>
+                    <label className="flex items-center gap-2 text-xs text-textGray font-semibold capitalize">
+                      <span className="w-7 h-7 rounded-full bg-white/5 border border-borderGray flex items-center justify-center text-accentRed">
+                        <FiHome className="w-3.5 h-3.5" />
+                      </span>
+                      Dirección
+                    </label>
                     <input 
                       type="text"
-                      {...register("first_name", { required: "Requerido" })}
-                      className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
+                      {...register("address_line1")}
+                      className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3.5 focus:outline-none focus:border-accentRed focus:ring-1 focus:ring-accentRed/40 rounded-lg transition-all duration-300 hover:border-textGray"
                     />
                   </div>
+
                   <div className="space-y-2">
-                    <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">Apellido</label>
+                    <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">Referencia opcional</label>
                     <input 
                       type="text"
-                      {...register("last_name", { required: "Requerido" })}
-                      className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">TelÃ©fono</label>
-                  <input 
-                    type="text"
-                    {...register("phone")}
-                    className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
-                  />
-                </div>
-
-                {/* DirecciÃ³n de EnvÃ­o */}
-                <h3 className="text-xs uppercase tracking-widest font-bold text-white pt-4 border-t border-borderGray">DirecciÃ³n de EnvÃ­o Predeterminada</h3>
-
-                <div className="space-y-2">
-                  <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">Calle Principal y NÃºmero</label>
-                  <input 
-                    type="text"
-                    {...register("address_line1")}
-                    className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">Referencia / Departamento (LÃ­nea 2)</label>
-                  <input 
-                    type="text"
-                    {...register("address_line2")}
-                    className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">Ciudad</label>
-                    <input 
-                      type="text"
-                      {...register("city")}
-                      className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">Provincia / Estado</label>
-                    <input 
-                      type="text"
-                      {...register("state")}
-                      className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">CÃ³digo Postal</label>
-                    <input 
-                      type="text"
-                      {...register("postal_code")}
-                      className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-2xs uppercase tracking-widest text-textGray font-semibold">PaÃ­s</label>
-                    <input 
-                      type="text"
-                      {...register("country")}
-                      className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-none"
+                      {...register("address_line2")}
+                      className="w-full bg-black border border-borderGray text-white text-xs px-4 py-3.5 focus:outline-none focus:border-accentRed focus:ring-1 focus:ring-accentRed/40 rounded-lg transition-all duration-300 hover:border-textGray"
                     />
                   </div>
                 </div>
 
                 <button 
                   type="submit"
-                  className="bg-white hover:bg-accentRed text-black hover:text-white px-8 py-4 text-xs uppercase tracking-widest font-bold transition-all duration-300 rounded-none"
+                  className="bg-accentRed hover:bg-accentRedHover text-white px-8 py-4 text-xs uppercase tracking-widest font-bold transition-all duration-300 rounded-lg shadow-lg shadow-accentRed/20"
                 >
-                  Guardar Cambios
+                  Guardar cambios
                 </button>
 
               </form>
@@ -383,19 +429,41 @@ const ProfilePage = () => {
                     </p>
                   </div>
                 </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-black/40 border border-borderGray rounded-xl p-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-textGray">Filtrar pedidos</p>
+                    <p className="text-xs text-white mt-1">
+                      {orderStatusFilter === 'ALL'
+                        ? 'Mostrando todos los estados'
+                        : `Mostrando: ${ORDER_STATUS_FILTERS.find((item) => item.value === orderStatusFilter)?.label || orderStatusFilter}`}
+                    </p>
+                  </div>
+                  <select
+                    value={orderStatusFilter}
+                    onChange={(e) => setOrderStatusFilter(e.target.value)}
+                    className="w-full sm:w-64 bg-black border border-borderGray text-white text-xs px-4 py-3 focus:outline-none focus:border-accentRed rounded-xl"
+                  >
+                    {ORDER_STATUS_FILTERS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               
               {loadingOrders ? (
                 <div className="text-center py-12">
                   <div className="w-8 h-8 border-2 border-accentRed border-t-transparent rounded-full animate-spin mx-auto"></div>
                 </div>
-              ) : orders.length === 0 ? (
+              ) : filteredOrders.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-borderGray rounded-2xl bg-black/40 text-textGray text-xs uppercase tracking-widest">
-                  AÃºn no has realizado ningÃºn pedido.
+                  No hay pedidos para este estado.
                 </div>
               ) : (
                 <div className="space-y-5">
-                  {orders.map((order) => (
+                  {filteredOrders.map((order) => (
                     <div key={order.id} className={`border rounded-2xl p-5 md:p-6 space-y-5 shadow-lg transition-all duration-300 hover:shadow-accentRed/10 ${getOrderAccent(order.status)}`}>
                       
                       {/* Cabecera del pedido */}
@@ -431,7 +499,7 @@ const ProfilePage = () => {
                               </p>
                               <p className="text-[10px] text-textGray mt-1">
                                 Color: {item.variant_detail.color}
-                                {item.variant_detail.size ? ` Â· Talla: ${item.variant_detail.size}` : ''}
+                                {item.variant_detail.size ? ` · Talla: ${item.variant_detail.size}` : ''}
                               </p>
                             </div>
                             <div className="text-right shrink-0">
@@ -442,12 +510,12 @@ const ProfilePage = () => {
                         ))}
                       </div>
 
-                      {/* DirecciÃ³n de envÃ­o */}
+                      {/* Dirección de envío */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-black/40 border border-borderGray rounded-xl p-4 space-y-2">
                           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-textGray">
                             <FiMapPin className="w-3.5 h-3.5 text-accentRed" />
-                            DirecciÃ³n de envÃ­o
+                            Dirección de envío
                           </div>
                           <p className="text-xs text-white font-medium leading-relaxed">{getShippingAddress(order)}</p>
                         </div>
@@ -461,16 +529,16 @@ const ProfilePage = () => {
                             {order.shipping_address?.full_name || 'No especificado'}
                           </p>
                           <p className="text-[10px] text-textGray">
-                            TelÃ©fono: {order.shipping_address?.phone || 'No especificado'}
+                            Teléfono: {order.shipping_address?.phone || 'No especificado'}
                           </p>
                         </div>
                       </div>
 
-                      {/* Acciones del pedido (Carga de comprobante tardÃ­o si estÃ¡ PENDING) */}
+                      {/* Acciones del pedido (Carga de comprobante tardío si está PENDING) */}
                       {order.status === 'PENDING' && (
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-black/60 border border-borderGray rounded-xl p-4">
                           <p className="text-[10px] text-textGray uppercase tracking-wider leading-relaxed">
-                            AÃºn no has subido tu comprobante de pago. SÃºbelo para iniciar la validaciÃ³n.
+                            Aún no has subido tu comprobante de pago. Súbelo para iniciar la validación.
                           </p>
                           
                           <div className="relative overflow-hidden border border-white hover:border-accentRed bg-black text-white hover:text-accentRed px-4 py-2 text-2xs uppercase tracking-widest font-bold transition-all cursor-pointer rounded-lg">

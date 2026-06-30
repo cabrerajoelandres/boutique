@@ -7,14 +7,16 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (clearOnError = true) => {
     try {
       const response = await axiosInstance.get('/auth/profile/');
       setUser(response.data);
     } catch (error) {
-      setUser(null);
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      if (clearOnError) {
+        setUser(null);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+      }
     } finally {
       setLoading(false);
     }
@@ -35,7 +37,10 @@ export const AuthProvider = ({ children }) => {
       const response = await axiosInstance.post('/auth/login/', { email, password });
       localStorage.setItem('access_token', response.data.access);
       localStorage.setItem('refresh_token', response.data.refresh);
-      await fetchProfile();
+      if (response.data.user) {
+        setUser(response.data.user);
+      }
+      await fetchProfile(false);
       return { success: true };
     } catch (error) {
       setLoading(false);

@@ -39,7 +39,7 @@ const CheckoutPage = () => {
       setValue('full_name', `${user.first_name || ''} ${user.last_name || ''}`.trim());
       setValue('phone', user.perfil?.phone || '');
       setValue('backup_phone', user.perfil?.backup_phone || '');
-      setValue('province', user.perfil?.state || '');
+      setValue('province', user.perfil?.province || user.perfil?.state || '');
       setValue('city', user.perfil?.city || '');
       setValue('address', user.perfil?.address_line1 || '');
     }

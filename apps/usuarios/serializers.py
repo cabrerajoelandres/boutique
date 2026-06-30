@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import get_user_model
 from .models import PerfilUsuario
 from apps.carrito.models import Carrito
@@ -8,7 +9,17 @@ Usuario = get_user_model()
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = PerfilUsuario
-        fields = ['phone', 'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'country']
+        fields = [
+            'phone',
+            'backup_phone',
+            'province',
+            'address_line1',
+            'address_line2',
+            'city',
+            'state',
+            'postal_code',
+            'country',
+        ]
 
 class UsuarioSerializer(serializers.ModelSerializer):
     perfil = PerfilUsuarioSerializer()
@@ -74,4 +85,12 @@ class PasswordChangeSerializer(serializers.Serializer):
     def validate(self, data):
         if data['new_password'] != data['new_password_confirm']:
             raise serializers.ValidationError({"new_password": "Las contraseñas no coinciden."})
+        return data
+
+
+class LoginSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        PerfilUsuario.objects.get_or_create(user=self.user)
+        data["user"] = UsuarioSerializer(self.user).data
         return data

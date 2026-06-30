@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
 from .serializers import RegisterSerializer, UsuarioSerializer, PasswordChangeSerializer
+from .models import PerfilUsuario
 
 Usuario = get_user_model()
 
@@ -17,6 +18,7 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UsuarioSerializer
 
     def get_object(self):
+        PerfilUsuario.objects.get_or_create(user=self.request.user)
         return self.request.user
 
 class PasswordChangeView(APIView):

@@ -1,10 +1,16 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
+from .serializers import LoginSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 from .views import RegisterView, ProfileView, PasswordChangeView, PasswordRecoverView, ClientListView
+
+
+class LoginView(TokenObtainPairView):
+    serializer_class = LoginSerializer
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='auth_register'),
-    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('login/', LoginView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('profile/', ProfileView.as_view(), name='auth_profile'),
     path('password/change/', PasswordChangeView.as_view(), name='auth_password_change'),
